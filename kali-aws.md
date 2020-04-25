@@ -15,6 +15,8 @@ sudo chmod 600 /var/swap.1
 sudo /sbin/swapon /var/swap.1
 ```
 
+TODO Activate swap after reboot
+
 ### Change hostname (optional)
 ```
 sudo vi /etc/cloud/templates/hosts.debian.tmpl
@@ -54,7 +56,7 @@ For any other questions choose `Keep the local version installed`.
 sudo apt-get -y update && sudo apt-get -y upgrade && sudo apt-get -y dist-upgrade && sudo apt-get -y autoremove
 ```
 
-`Keep the local version installed` and for GRUB do not select anything and proceed without installing it.
+Except for **sshd_config** where you can `install the package maintainer's version`, `Keep the local version installed` or select `N` and for GRUB do not select anything and proceed without installing it.
 
 Configure your time zone: `sudo dpkg-reconfigure tzdata` and reboot `sudo shutdown -r now`.
 
@@ -70,6 +72,8 @@ echo $1 | xargs -I {} sudo sed -i 's/10.10.*/{} target/' /etc/hosts
 }
 alias ll='ls -la'
 ```
+
+Dont forget to add `10.10.1.1 target` to `/etc/hosts`.
 
 ## Install Desktop (not working properly: slow, no window title bars)
 ```
@@ -103,5 +107,11 @@ Kill the running session `vncserver -kill :1`.
 
 ## Install some more tools
 
-- SecLists
-- ffuf
+### Go
+`sudo apt-get install golang`
+
+### SecLists
+`sudo apt-get install seclists`
+
+### ffuf
+`go get github.com/ffuf/ffuf`
