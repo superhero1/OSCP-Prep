@@ -108,10 +108,16 @@ Kill the running session `vncserver -kill :1`.
 ## Install some more tools
 
 ### Go
-`sudo apt-get install golang`
+```
+sudo apt-get install golang
+export PATH=/home/admin/go/bin:$PATH
+```
 
 ### SecLists
 `sudo apt-get install seclists`
 
 ### ffuf
 `go get github.com/ffuf/ffuf`
+
+### Gunzip rockyou.txt
+`sudo gunzip /usr/share/wordlists/rockyou.txt.gz`

