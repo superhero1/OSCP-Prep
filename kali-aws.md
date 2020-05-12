@@ -65,7 +65,7 @@ If you want to skip the system information after login run `touch .hushlogin`.
 ### Create .bash_aliases (optional)
 ```
 thm(){
-sudo openvpn --config /home/admin/.ovpn/superhero1.ovpn --daemon
+sudo openvpn --config /home/admin/.ovpn/superhero1.ovpn
 }
 settarget(){
 echo $1 | xargs -I {} sudo sed -i 's/10.10.*/{} target/' /etc/hosts
