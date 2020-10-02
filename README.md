@@ -1,5 +1,5 @@
 # OSCP Preparation Guide 2020
-*Work in progress by [superhero1](https://twitter.com/_superhero1), watch the stream on [Twitch](https://twitch.tv/sup3rhero1), Support me on [Ko-fi](https://github.com/shahirsu/OSCP-Prep.git)*
+*Work in progress by [superhero1](https://twitter.com/_superhero1), watch the stream on [Twitch](https://twitch.tv/sup3rhero1), Support me on [Ko-fi](https://ko-fi.com/superhero1)*
 
 
 ## Pre-Prep
